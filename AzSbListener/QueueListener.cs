@@ -25,6 +25,7 @@ public class QueueListener : IHostedService
         logger.LogInformation("Queue listener started");
         try
         {
+            logger.LogInformation("Connection String: {connection} Queue Name: {queuename}", this.queueOptions.ConnectionString, this.queueOptions.QueueName);
             this.queueClient = new QueueClient(this.queueOptions.ConnectionString, this.queueOptions.QueueName);
             this.RegisterOnMessageHandlerAndReceiveMessages();
             queueHealthCheck.IsQueueConnected = true;
@@ -56,11 +57,12 @@ public class QueueListener : IHostedService
             return;
         }
 
+        logger.LogInformation("MaxConcurrentCalls: {Concurrency}, MaxAutoRenew: {AutoRenew}", this.queueOptions.MaxConcurrentCalls, this.queueOptions.MaxAutoRenewDurationInMins);
         var messageHandlerOptions = new MessageHandlerOptions(ExceptionReceivedHandler)
         {
             MaxConcurrentCalls = this.queueOptions.MaxConcurrentCalls,
             MaxAutoRenewDuration = TimeSpan.FromMinutes(this.queueOptions.MaxAutoRenewDurationInMins),
-        };
+        };        
 
         this.queueClient.RegisterMessageHandler(ProcessMessagesAsync, messageHandlerOptions);
     }
@@ -68,13 +70,18 @@ public class QueueListener : IHostedService
     private async Task ProcessMessagesAsync(Message message, CancellationToken token)
     {
         var queueMessage = JsonSerializer.Deserialize<QueueMessage>(Encoding.UTF8.GetString(message.Body));
-        this.queueHealthCheck.IsQueueConnected = true;
+        if (queueMessage is not null)
+        {
+            logger.LogInformation("Received message: {Key}, {Value}", queueMessage.Key, queueMessage.Value);
+            this.queueHealthCheck.IsQueueConnected = true;
+        }
     }
 
     private Task ExceptionReceivedHandler(ExceptionReceivedEventArgs exceptionReceivedEventArgs)
     {
         if (exceptionReceivedEventArgs.Exception is MessagingEntityNotFoundException)
         {
+            logger.LogError(exceptionReceivedEventArgs.Exception, "Messaging Entity Not Found");
             this.queueHealthCheck.IsQueueConnected = false;
         }
 

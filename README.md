@@ -10,3 +10,6 @@ dotnet build
 
 ## Run ##
 dotnet run
+
+## Healthcheck ##
+[http://localhost:5000/healthcheck]
