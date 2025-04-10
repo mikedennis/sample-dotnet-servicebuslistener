@@ -28,4 +28,6 @@ cd AspireRabbitMq
 dotnet run --project ./AspireWithRabbitMQ.AppHost
 
 ### Test ###
-click the link in log to open Aspire dashboard
+- click the link in log to open Aspire dashboard
+- Go to the sender swagger and enter the following message text { "Text": "test 123456" }
+- In the logs for the receiver you should see it processing and outputting the parsed message
